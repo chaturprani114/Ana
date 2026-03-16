@@ -46,26 +46,27 @@
     --font-mono: 'DM Mono', 'Courier New', monospace;
   }
 
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg-primary: #1e1d1b;
-      --bg-secondary: #252420;
-      --bg-tertiary: #2c2b27;
-      --text-primary: #e8e6de;
-      --text-secondary: #9c9a92;
-      --text-tertiary: #6b6a64;
-      --border-light: rgba(255,255,255,0.08);
-      --border-mid: rgba(255,255,255,0.15);
-      --amber-light: #2e2006;
-      --teal-light: #052e22;
-      --blue-light: #071e38;
-      --coral-light: #2a1008;
-      --purple-light: #16133a;
-      --red-light: #2a0d0d;
-      --green-light: #111f06;
-      --gray-light: #252420;
-    }
+  html.dark {
+    --bg-primary: #1e1d1b;
+    --bg-secondary: #252420;
+    --bg-tertiary: #2c2b27;
+    --text-primary: #e8e6de;
+    --text-secondary: #9c9a92;
+    --text-tertiary: #6b6a64;
+    --border-light: rgba(255,255,255,0.08);
+    --border-mid: rgba(255,255,255,0.15);
+    --amber-light: #2e2006;
+    --teal-light: #052e22;
+    --blue-light: #071e38;
+    --coral-light: #2a1008;
+    --purple-light: #16133a;
+    --red-light: #2a0d0d;
+    --green-light: #111f06;
+    --gray-light: #252420;
   }
+
+  html, body { transition: background .3s, color .3s; }
+  *, *::before, *::after { transition: background-color .3s, border-color .3s, color .3s; }
 
   html, body { height: 100%; background: var(--bg-tertiary); color: var(--text-primary); font-family: var(--font-main); }
 
@@ -118,6 +119,31 @@
   .btn:hover { background: var(--bg-secondary); color: var(--text-primary); }
   .btn-primary { background: var(--amber); color: #fff; border-color: var(--amber); }
   .btn-primary:hover { background: var(--coral); border-color: var(--coral); color: #fff; }
+
+  /* ── Theme toggle ── */
+  .theme-toggle {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 12px; border-radius: 20px; cursor: pointer;
+    border: 0.5px solid var(--border-mid); background: var(--bg-secondary);
+    color: var(--text-secondary); font-size: 12px; font-weight: 600;
+    font-family: var(--font-main); transition: all .2s; user-select: none;
+  }
+  .theme-toggle:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+  .toggle-track {
+    width: 32px; height: 18px; border-radius: 9px; background: var(--border-mid);
+    position: relative; transition: background .3s; flex-shrink: 0;
+  }
+  html.dark .toggle-track { background: var(--amber); }
+  .toggle-thumb {
+    position: absolute; top: 2px; left: 2px;
+    width: 14px; height: 14px; border-radius: 50%; background: #fff;
+    transition: transform .25s cubic-bezier(.4,0,.2,1);
+    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+  }
+  html.dark .toggle-thumb { transform: translateX(14px); }
+  .toggle-sun, .toggle-moon { font-size: 13px; line-height: 1; }
+  html:not(.dark) .toggle-moon { display: none; }
+  html.dark .toggle-sun { display: none; }
 
   .content { flex: 1; overflow-y: auto; padding: 20px 24px; }
 
@@ -354,6 +380,11 @@
     <div class="topbar">
       <h2 id="panel-title">Weekly Overview</h2>
       <div class="topbar-actions">
+        <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+          <span class="toggle-sun">☀</span>
+          <span class="toggle-moon">☾</span>
+          <div class="toggle-track"><div class="toggle-thumb"></div></div>
+        </button>
         <button class="btn btn-primary">Export WH-347</button>
       </div>
     </div>
@@ -1046,11 +1077,42 @@ function showPanel(id, el) {
   }
 }
 
-const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
-const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
-const textColor = isDark ? '#9c9a92' : '#5F5E5A';
+const isDark = () => document.documentElement.classList.contains('dark');
+const gridColor = () => isDark() ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+const textColor = () => isDark() ? '#9c9a92' : '#5F5E5A';
+
 Chart.defaults.font.family = "'Syne', system-ui, sans-serif";
-Chart.defaults.color = textColor;
+Chart.defaults.color = textColor();
+
+function toggleTheme() {
+  const html = document.documentElement;
+  html.classList.toggle('dark');
+  const dark = isDark();
+  localStorage.setItem('theme', dark ? 'dark' : 'light');
+  const gc = gridColor();
+  const tc = textColor();
+  Chart.defaults.color = tc;
+  Chart.instances && Object.values(Chart.instances).forEach(chart => {
+    try {
+      if (chart.options.scales) {
+        Object.values(chart.options.scales).forEach(scale => {
+          if (scale.grid) scale.grid.color = gc;
+          if (scale.ticks) scale.ticks.color = tc;
+        });
+      }
+      if (chart.options.plugins && chart.options.plugins.legend && chart.options.plugins.legend.labels) {
+        chart.options.plugins.legend.labels.color = tc;
+      }
+      chart.update('none');
+    } catch(e) {}
+  });
+}
+
+/* Restore saved theme preference */
+if (localStorage.getItem('theme') === 'dark') {
+  document.documentElement.classList.add('dark');
+  Chart.defaults.color = '#9c9a92';
+}
 
 new Chart(document.getElementById('tradeChart'), {
   type: 'bar',
@@ -1058,7 +1120,7 @@ new Chart(document.getElementById('tradeChart'), {
     labels: ['Electrical','Carpentry','Ironwork','Plumbing','Laborer','Other'],
     datasets: [{ label: 'Gross Pay', data: [62400,41200,38900,29800,24100,22030], backgroundColor: ['#378ADD','#EF9F27','#534AB7','#1D9E75','#D85A30','#888780'], borderRadius: 4, borderSkipped: false }]
   },
-  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: gridColor }, ticks: { font: { size: 10 } } }, y: { grid: { color: gridColor }, ticks: { callback: v => '$'+(v/1000).toFixed(0)+'k', font: { size: 10 } } } } }
+  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: gridColor() }, ticks: { font: { size: 10 } } }, y: { grid: { color: gridColor() }, ticks: { callback: v => '$'+(v/1000).toFixed(0)+'k', font: { size: 10 } } } } }
 });
 
 new Chart(document.getElementById('earningsChart'), {
@@ -1076,7 +1138,7 @@ new Chart(document.getElementById('trendChart'), {
       { label: 'Total w/ Fringes', data: [221400,230200,239100,249630], borderColor: '#EF9F27', backgroundColor: 'rgba(239,159,39,0.05)', fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#EF9F27' }
     ]
   },
-  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { font: { size: 10 }, boxWidth: 10 } } }, scales: { x: { grid: { color: gridColor }, ticks: { font: { size: 10 } } }, y: { grid: { color: gridColor }, ticks: { callback: v => '$'+(v/1000).toFixed(0)+'k', font: { size: 10 } } } } }
+  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { font: { size: 10 }, boxWidth: 10 } } }, scales: { x: { grid: { color: gridColor() }, ticks: { font: { size: 10 } } }, y: { grid: { color: gridColor() }, ticks: { callback: v => '$'+(v/1000).toFixed(0)+'k', font: { size: 10 } } } } }
 });
 
 new Chart(document.getElementById('classChart'), {
@@ -1089,12 +1151,12 @@ function renderTaxCharts() {
   new Chart(document.getElementById('taxChart'), {
     type: 'bar',
     data: { labels: ['Fed. Income','Soc. Security','Medicare','State','Local / City','School Dist.'], datasets: [{ label: 'Employee', data: [28400,13543,3168,8200,3100,1200], backgroundColor: '#D85A30', borderRadius: 4 }, { label: 'Employer', data: [0,13543,3168,4860,0,0], backgroundColor: '#534AB7', borderRadius: 4 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { font: { size: 10 }, boxWidth: 10 } } }, scales: { x: { grid: { color: gridColor }, ticks: { font: { size: 10 } } }, y: { grid: { color: gridColor }, ticks: { callback: v => '$'+(v/1000).toFixed(0)+'k', font: { size: 10 } } } } }
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { font: { size: 10 }, boxWidth: 10 } } }, scales: { x: { grid: { color: gridColor() }, ticks: { font: { size: 10 } } }, y: { grid: { color: gridColor() }, ticks: { callback: v => '$'+(v/1000).toFixed(0)+'k', font: { size: 10 } } } } }
   });
   new Chart(document.getElementById('stateChart'), {
     type: 'bar',
     data: { labels: ['Pennsylvania','California','Ohio','New Jersey'], datasets: [{ data: [98400,62800,41100,16130], backgroundColor: ['#185FA5','#D85A30','#3B6D11','#534AB7'], borderRadius: 4 }] },
-    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: gridColor }, ticks: { callback: v => '$'+(v/1000).toFixed(0)+'k', font: { size: 10 } } }, y: { grid: { color: gridColor }, ticks: { font: { size: 10 } } } } }
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: gridColor() }, ticks: { callback: v => '$'+(v/1000).toFixed(0)+'k', font: { size: 10 } } }, y: { grid: { color: gridColor() }, ticks: { font: { size: 10 } } } } }
   });
 }
 
