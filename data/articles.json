@@ -1,7 +1,21 @@
 [
  {
   "Index": "01",
-  "title": "Payroll for Construction Industry - Primer",
+  "title": "Payroll Interactive Dashboard",
   "date": "2026-03-17",
   "link": "articles/article1.html"
+ },
+
+{
+  "Index": "01",
+  "title": "Payroll for Construction Industry - Primer ",
+  "date": "2026-03-17",
+  "link": "https://docs.google.com/document/d/1X8-Rm9_zsIVSfh9ys6Xv3N99kjm7UXk5HfOkL9QA7z4/edit?tab=t.0#heading=h.6n3akcjyz6xl00"
+ },
+
+ {
+  "Index": "03",
+  "title": "PayrollTest Scenarios V1",
+  "date": "2026-03-17",
+  "link": "https://docs.google.com/document/d/1uW0BueO57cm31eGwaEdXePVX9jbZhWSJYP4hUZ_B-Uo/edit?tab=t.0"
  }]
